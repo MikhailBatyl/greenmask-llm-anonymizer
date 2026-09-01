@@ -1,0 +1,32 @@
+version: "3.9"
+
+# ============================================================
+# Greenmask standalone service
+# Подключается к существующей сети n8n_default,
+# где уже работает n8n-postgres-1 (postgres:16) и n8n-n8n-1
+# ============================================================
+
+services:
+  greenmask:
+    image: greenmask-with-jq
+    container_name: greenmask
+    networks:
+      - n8n_default
+    volumes:
+      - ./config.yml:/config.yml:ro
+      - ./storage:/storage
+      - ./scripts:/scripts:ro
+    environment:
+      - N8N_WEBHOOK_URL=https://dbbatyln8n.ru/webhook/sanitize-text
+      - N8N_WEBHOOK_TOKEN=${N8N_WEBHOOK_TOKEN}
+      - LLM_TIMEOUT_SEC=45
+    working_dir: /
+    # Контейнер не запускает сервер, а исполняет команды разово (dump/restore)
+    # поэтому entrypoint оставляем стандартным, команды передаём при docker exec / docker run --rm
+    command: ["--config=/config.yml", "list-transformers"]
+    tty: true
+    stdin_open: true
+
+networks:
+  n8n_default:
+    external: true

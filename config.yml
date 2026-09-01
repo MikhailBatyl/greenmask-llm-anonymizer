@@ -1,0 +1,135 @@
+# ============================================================
+# Greenmask config.yml
+# Source: sanitize_demo (schema с PII/confidential данными)
+# Target: sanitize_demo_target (та же физическая БД, другая database)
+# Host: postgres (алиас контейнера n8n-postgres-1 в сети n8n_default)
+# User: root (superuser, подтверждён через docker exec ... env)
+# LLM-слой: Cmd-трансформер -> /scripts/llm_anonymize.sh -> n8n webhook -> GPT-4o mini
+# ============================================================
+
+common:
+  pg_bin_path: "/usr/lib/postgresql/16/bin"
+
+storage:
+  type: "directory"
+  directory:
+    path: "/storage"
+
+dump:
+  pg_dump_options:
+    dbname: "host=postgres port=5432 user=root password=sVZO4Ll7XVqD2l3 dbname=sanitize_demo sslmode=disable"
+    jobs: 4
+
+  transformation:
+
+    # -------------------- contractors --------------------
+    - schema: "sanitize_demo"
+      name: "contractors"
+      transformers:
+        - name: "RandomPerson"
+          params:
+            gender: "Any"
+            engine: "hash"
+            columns:
+              - name: "contact_full_name"
+                template: "{{ .FirstName }} {{ .LastName }}"
+
+        - name: "RandomEmail"
+          params:
+            column: "contact_email"
+            engine: "hash"
+            keep_original_domain: false
+            max_random_length: 10
+
+        - name: "RandomE164PhoneNumber"
+          params:
+            column: "contact_phone"
+
+        - name: "Hash"
+          params:
+            column: "inn"
+            function: "sha1"
+            max_length: 10
+
+        - name: "RandomCompany"
+          params:
+            engine: "hash"
+            columns:
+              - name: "company_name"
+                template: "{{ .CompanyName }} {{ .CompanySuffix }}"
+
+    # -------------------- contracts --------------------
+    - schema: "sanitize_demo"
+      name: "contracts"
+      transformers:
+        - name: "NoiseNumeric"
+          params:
+            column: "amount"
+            min_ratio: 0.15
+            max_ratio: 0.35
+
+        # LLM-парафраз бизнес-заметки: сохраняет категорию/тон,
+        # убирает конкретные цифры/детали (скидки, санкции, доступ к данным)
+        - name: "Cmd"
+          params:
+            driver:
+              name: "json"
+              json_data_format: "text"
+            executable: "/scripts/llm_anonymize.sh"
+            args: []
+            timeout: "90s"
+            expected_exit_code: -1
+            validate: false
+            skip_on_behaviour: "any"
+            columns:
+              - name: "internal_note"
+                skip_original_data: false
+                skip_on_null_input: true
+
+        - name: "NoiseDate"
+          params:
+            column: "signed_date"
+            min_ratio: "2 day"
+            max_ratio: "7 day"
+
+    # -------------------- contract_payments --------------------
+    - schema: "sanitize_demo"
+      name: "contract_payments"
+      transformers:
+        - name: "NoiseNumeric"
+          params:
+            column: "payment_amount"
+            min_ratio: 0.1
+            max_ratio: 0.25
+
+        - name: "Hash"
+          params:
+            column: "payer_account"
+            function: "sha1"
+            max_length: 32
+
+        # LLM-разнообразие шаблонных комментариев ("Плановый транш N" -> вариации),
+        # числа/номера транша сохраняются точно, лимит varchar(255) проверяется в скрипте
+        - name: "Cmd"
+          params:
+            driver:
+              name: "json"
+              json_data_format: "text"
+            executable: "/scripts/llm_anonymize.sh"
+            args: []
+            timeout: "90s"
+            expected_exit_code: -1
+            validate: false
+            skip_on_behaviour: "any"
+            columns:
+              - name: "comment"
+                skip_original_data: false
+                skip_on_null_input: true
+
+restore:
+  pg_restore_options:
+    dbname: "host=postgres port=5432 user=root password=sVZO4Ll7XVqD2l3 dbname=sanitize_demo_target sslmode=disable"
+    jobs: 4
+    clean: true
+    if-exists: true
+    exit-on-error: false

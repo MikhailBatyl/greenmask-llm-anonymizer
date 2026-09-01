@@ -1,0 +1,408 @@
+{
+  "name": "Webhook",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "=sanitize-text",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -352,
+        -128
+      ],
+      "id": "f11bca9e-2f2f-42b8-b035-559e37270138",
+      "name": "Webhook",
+      "webhookId": "75de1798-35df-4e4f-981a-cc525bf08f91",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "AP46MPCaSZKk27KG",
+          "name": "Header Auth account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "0f602099-a0e2-4444-a90b-e367aed5ae5b",
+              "leftValue": "={{ $json.skip_llm }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        48,
+        -128
+      ],
+      "id": "b04cfad3-a594-4abf-98c4-cc30ac5e3017",
+      "name": "проверка skip_llm"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.field_type }}",
+                    "rightValue": "internal_note",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "8d713027-9abf-4d82-99f3-7a603f347752"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "ffee8364-6e62-4552-84aa-38cfd9138282",
+                    "leftValue": "={{ $json.field_type }}",
+                    "rightValue": "comment",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        304,
+        128
+      ],
+      "id": "b3aa418a-853f-42c3-9ccc-752212c35e26",
+      "name": "маршрутизация по field_type"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.original_value }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=Ты — инструмент анонимизации бизнес-данных. Тебе дают внутреннюю заметку \nо контрагенте или контракте на русском языке. Твоя задача — переписать \nзаметку так, чтобы:\n\n1. Сохранить общую категорию и тон заметки (риск/льгота/логистика/юридический вопрос/финансы).\n2. Убрать конкретные цифры, процента, суммы, названия должностей и специфические детали.\n3. Заменить конкретику на обобщённую формулировку того же смысла.\n4. Сохранить длину и стиль похожими на оригинал (одно короткое предложение).\n5. НЕ добавлять пояснений, кавычек или комментариев — вернуть только переписанный текст.\n\nПримеры:\nВход: \"Приоритетный партнёр, скидка 8%\"\nВыход: \"Приоритетный партнёр, действуют льготные условия\"\n\nВход: \"Высокий риск срыва сроков, штрафные санкции применены ранее\"\nВыход: \"Повышенный риск нарушения сроков, ранее фиксировались санкции\""
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        624,
+        -16
+      ],
+      "id": "7a08a8e0-0b71-468c-8a00-4f7717daa2bf",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {
+          "maxTokens": 150,
+          "textFormat": {
+            "textOptions": {
+              "type": "text"
+            }
+          },
+          "temperature": 0.7
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        624,
+        160
+      ],
+      "id": "b1d23e85-5238-435f-86ab-5b8166e0dd19",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "ASqL2X9iONYPFCF0",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.original_value }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=Ты — инструмент генерации разнообразных формулировок для комментариев \nк платежам. Тебе дают короткий шаблонный комментарий на русском языке. \nТвоя задача — переписать его другими словами, сохранив точный смысл \n(номер транша, тип платежа, любые числа должны остаться без изменений), \nно изменив формулировку.\n\nПравила:\n1. Числа и порядковые номера сохраняй точно как в оригинале.\n2. Меняй только словесную конструкцию (синонимы, порядок слов).\n3. Результат должен быть не длиннее 255 символов.\n4. НЕ добавляй пояснений, кавычек или комментариев — вернуть только переписанный текст.\n\nПримеры:\nВход: \"Плановый транш 1\"\nВыход: \"Оплата по графику, транш №1\"\n\nВход: \"Плановый транш 2\"\nВыход: \"Очередной платёж, транш 2 по графику\""
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        592,
+        320
+      ],
+      "id": "f73b9be2-3811-4f5d-ac72-6c6888911127",
+      "name": "Basic LLM Chain1"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {
+          "maxTokens": 50,
+          "textFormat": {
+            "textOptions": {
+              "type": "text"
+            }
+          },
+          "temperature": 0.9
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        592,
+        512
+      ],
+      "id": "6b474525-eb17-4949-aac5-af182b5c2dec",
+      "name": "OpenAI Chat Model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "ASqL2X9iONYPFCF0",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.item.json.body || {};\n\nconst fieldType = body.field_type || null;\nconst originalValue = (body.value || '').toString().trim();\nconst table = body.context?.table || null;\nconst rowId = body.context?.row_id != null ? Number(body.context.row_id) : null;\n\nconst isEmpty = originalValue.length === 0;\n\nconst validFieldTypes = ['internal_note', 'comment'];\nconst isValidFieldType = validFieldTypes.includes(fieldType);\n\nreturn {\n  json: {\n    field_type: fieldType,\n    original_value: originalValue,\n    table: table,\n    row_id: rowId,\n    is_empty: isEmpty,\n    is_valid_field_type: isValidFieldType,\n    skip_llm: isEmpty || !isValidFieldType\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        -128
+      ],
+      "id": "b0b4697e-d03a-4ee1-9a61-c4310c174191",
+      "name": "нормализация + флаги"
+    },
+    {
+      "parameters": {
+        "jsCode": "const skipLlm = $('нормализация + флаги').item.json.skip_llm;\n\nlet cleaned;\nif (skipLlm) {\n  cleaned = $('нормализация + флаги').item.json.original_value || '';\n} else {\n  const rawOutput = ($input.item.json.text || $input.item.json.output || '').toString();\n  cleaned = rawOutput.trim();\n  cleaned = cleaned.replace(/^[\"'«»]+|[\"'«»]+$/g, '');\n  cleaned = cleaned.replace(/^(Вот|Ответ|Результат)[:\\s-]*/i, '');\n}\n\nconst fieldType = $('нормализация + флаги').item.json.field_type;\nconst maxLength = fieldType === 'comment' ? 255 : 100000;\n\nif (cleaned.length > maxLength) {\n  cleaned = cleaned.substring(0, maxLength - 3) + '...';\n}\n\nreturn { json: { result: cleaned } };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1056,
+        -144
+      ],
+      "id": "161d30c3-6dba-42c3-a801-d95399876c49",
+      "name": "постобработка"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"result\": \"{{ $json.result }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1280,
+        -144
+      ],
+      "id": "788e57b4-1e11-4da1-bc9b-ccc88ea8f07d",
+      "name": "финальный ответ"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "нормализация + флаги",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "проверка skip_llm": {
+      "main": [
+        [
+          {
+            "node": "постобработка",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "маршрутизация по field_type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "маршрутизация по field_type": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Basic LLM Chain1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain1": {
+      "main": [
+        [
+          {
+            "node": "постобработка",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "постобработка",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "нормализация + флаги": {
+      "main": [
+        [
+          {
+            "node": "проверка skip_llm",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "постобработка": {
+      "main": [
+        [
+          {
+            "node": "финальный ответ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "eb13dc37-a675-400b-80aa-2ecef7658d06",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "97371ec9acf209144675b54edd82540deac49a1a426cfba61e30c08f12122dda"
+  },
+  "id": "jM5fFSmNJy5FDJOc",
+  "tags": []
+}

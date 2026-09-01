@@ -1,0 +1,160 @@
+{
+  "name": "TestAPPR-PII Audit Text",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "audit-text",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        272,
+        -64
+      ],
+      "id": "b6c0d262-4f6c-4d0f-848d-82ddb4f8dfc8",
+      "name": "Webhook",
+      "webhookId": "audit-text-webhook-id",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "AP46MPCaSZKk27KG",
+          "name": "Header Auth account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Ты — аудитор данных, проверяющий анонимизированный текст на предмет утечки чувствительной информации (PII).\n\nПроверь следующий текст и определи, содержит ли он ЛЮБОЕ из перечисленного:\n- конкретные суммы денег, проценты скидок\n- имена, фамилии, названия компаний\n- номера телефонов, email, ИНН, номера счетов/карт\n- точные даты, адреса, названия конкретных мест\n- любую другую информацию, которая могла бы идентифицировать реального человека, компанию или транзакцию\n\nТекст для проверки:\n\"{{ $json.body.value }}\"\n\nОтветь СТРОГО в формате JSON без каких-либо пояснений вокруг:\n{\"contains_pii\": true или false, \"reason\": \"краткое объяснение на русском, что именно найдено или почему текст чист\"}",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        496,
+        -64
+      ],
+      "id": "25039890-efa5-49c5-8c6e-e1b4e8d1a260",
+      "name": "LLM Audit Chain"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {
+          "temperature": 0
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        496,
+        128
+      ],
+      "id": "09eacbd5-868c-4d05-bdfd-1e713dfa58fb",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "ASqL2X9iONYPFCF0",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json.text ?? $input.first().json.output ?? '';\nlet cleaned = raw.trim();\ncleaned = cleaned.replace(/^```json\\s*/i, '').replace(/```\\s*$/i, '').trim();\n\nlet parsed;\ntry {\n  parsed = JSON.parse(cleaned);\n} catch (e) {\n  parsed = { contains_pii: true, reason: 'Не удалось распарсить ответ LLM: ' + cleaned.slice(0, 200) };\n}\n\nreturn [{ json: {\n  contains_pii: !!parsed.contains_pii,\n  reason: parsed.reason || 'Не указано'\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        832,
+        -64
+      ],
+      "id": "e577a9cd-9d7d-4e6e-ba27-a8e92b228fb9",
+      "name": "Parse LLM Response"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { contains_pii: $json.contains_pii, reason: $json.reason } }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1056,
+        -64
+      ],
+      "id": "16293358-814a-43a8-9832-31423bab7f95",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "LLM Audit Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "LLM Audit Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM Audit Chain": {
+      "main": [
+        [
+          {
+            "node": "Parse LLM Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse LLM Response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "65d695b9-b922-4fac-814d-91c1cf3c8353",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "97371ec9acf209144675b54edd82540deac49a1a426cfba61e30c08f12122dda"
+  },
+  "id": "THvlmaiNtCpK7axP",
+  "tags": []
+}
